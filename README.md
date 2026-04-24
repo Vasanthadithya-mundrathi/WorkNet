@@ -76,6 +76,8 @@ lib/
 
 All data is stored locally on-device. Profile sharing is opt-in and controlled by the user.
 
+## Authors
+Vasanthadithya and Geethika 
 ## License
 
 MIT License
