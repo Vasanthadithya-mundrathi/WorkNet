@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<!-- ── App Identity ──────────────────────────────────────────── -->
+		<key>CFBundleDevelopmentRegion</key>
+		<string>en</string>
+		<key>CFBundleDisplayName</key>
+		<string>WorkNet</string>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>worknet</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(FLUTTER_BUILD_NAME)</string>
+		<key>CFBundleSignature</key>
+		<string>????</string>
+		<key>CFBundleVersion</key>
+		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<!-- ── BLE Permissions ───────────────────────────────────────── -->
+		<!-- CRITICAL: Must explain WHY Bluetooth is needed for App Store review -->
+		<key>NSBluetoothAlwaysUsageDescription</key>
+		<string>WorkNet uses Bluetooth to discover nearby professionals at this event and to broadcast your profile to them. No data leaves your device.</string>
+		<!-- ── Local Network / Multipeer Connectivity ────────────────── -->
+		<!-- CRITICAL: Required for Apple Multipeer Connectivity (MPC) -->
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>WorkNet uses local Wi-Fi to discover and connect with professionals at the same event venue. No internet connection required.</string>
+		<!-- CRITICAL: Declare the Bonjour service types MPC registers. -->
+		<key>NSBonjourServices</key>
+		<array>
+			<string>_worknet._tcp</string>
+			<string>_worknet._udp</string>
+		</array>
+		<key>UIRequiresPersistentWiFi</key>
+		<true/>
+		<!-- ── Background Modes ──────────────────────────────────────── -->
+		<!-- CRITICAL: Without these, BLE scanning stops when app backgrounds -->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>bluetooth-central</string>
+			<string>bluetooth-peripheral</string>
+		</array>
+		<!-- ── Camera (for QR scan in Phase 2) ──────────────────────── -->
+		<key>NSCameraUsageDescription</key>
+		<string>WorkNet uses the camera to scan event QR codes and join event rooms.</string>
+		<!-- ── Location (required by iOS BLE APIs in some cases) ──────── -->
+		<!-- Note: We use neverForLocation flag on Android, but iOS BLE
+       scanning may still require location permission in some SDK versions -->
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>WorkNet may use approximate location to improve proximity accuracy at large venues.</string>
+		<!-- ── UI ────────────────────────────────────────────────────── -->
+		<key>UILaunchStoryboardName</key>
+		<string>LaunchScreen</string>
+		<key>UIMainStoryboardFile</key>
+		<string>Main</string>
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>UISupportedInterfaceOrientations~ipad</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationPortraitUpsideDown</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>CADisableMinimumFrameDurationOnPhone</key>
+		<true/>
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true/>
+		<!-- ── Minimum iOS Version ───────────────────────────────────── -->
+		<key>MinimumOSVersion</key>
+		<string>16.0</string>
+		<key>UIStatusBarHidden</key>
+		<false/>
+	</dict>
+</plist>
