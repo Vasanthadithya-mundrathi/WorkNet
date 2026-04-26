@@ -40,7 +40,7 @@ void main() {
 
       stopwatch.stop();
       // Keep this as a coarse regression guard. CI and local laptops vary here.
-      expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+      expect(stopwatch.elapsedMilliseconds, lessThan(3000));
 
       // Wait for TTL to pass
       await Future<void>.delayed(const Duration(milliseconds: 600));

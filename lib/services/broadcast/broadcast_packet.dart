@@ -34,6 +34,15 @@ class BroadcastPacket {
         signature: signature,
       );
 
+  BroadcastPacket refreshedForBroadcast({int hopCount = 0}) => BroadcastPacket(
+        userId: userId,
+        profile: profile,
+        hopCount: hopCount,
+        broadcastTimestamp: DateTime.now().millisecondsSinceEpoch,
+        version: version,
+        signature: signature,
+      );
+
   Map<String, dynamic> toJson() => {
         'uid': userId,
         'p': profile.toJson(),

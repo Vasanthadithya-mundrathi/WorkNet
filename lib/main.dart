@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:worknet/core/config/supabase_config.dart';
 import 'package:worknet/core/router/app_router.dart';
 import 'package:worknet/core/theme/app_theme.dart';
 
@@ -10,6 +12,13 @@ void main() async {
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
   };
+
+  if (WorkNetSupabaseConfig.isConfigured) {
+    await Supabase.initialize(
+      url: WorkNetSupabaseConfig.url,
+      anonKey: WorkNetSupabaseConfig.publishableKey,
+    );
+  }
 
   runApp(
     const ProviderScope(

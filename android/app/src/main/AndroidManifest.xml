@@ -13,11 +13,9 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30"/>
 
-    <!-- Location — required by BLE scan on Android ≤ 31 -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
-        android:maxSdkVersion="32"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"
-        android:maxSdkVersion="32"/>
+    <!-- Location — still required by several BLE/Nearby stacks for reliable discovery. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <!-- Android 12+ (API 31+) — new granular Bluetooth permissions -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"

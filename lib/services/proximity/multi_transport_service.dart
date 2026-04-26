@@ -4,6 +4,7 @@ import 'package:worknet/services/broadcast/broadcast_packet.dart';
 import 'package:worknet/services/proximity/ble_discovery_service.dart';
 import 'package:worknet/services/proximity/nearby_connections_service.dart';
 import 'package:worknet/services/proximity/proximity_service.dart';
+import 'package:worknet/services/proximity/supabase_discovery_service.dart';
 import 'package:worknet/services/proximity/udp_discovery_service.dart';
 
 // ════════════════════════════════════════════════════════════════════
@@ -14,6 +15,7 @@ import 'package:worknet/services/proximity/udp_discovery_service.dart';
 // 1st       UDP Broadcast      ~50 ms     Same WiFi    Fastest
 // 2nd       BLE Scan           ~200 ms    ~30 m        No WiFi needed
 // 3rd       Nearby Connections ~1-2 s     ~100 m       BLE+WiFi Direct
+// 4th       Supabase Realtime  internet   global       Cloud fallback
 //
 // All three run in parallel. Deduplication is handled upstream
 // by SeenCache in GossipRelay (packet.dedupKey = userId+seq).
@@ -23,6 +25,7 @@ class MultiTransportService implements ProximityServiceInterface {
   final ProximityServiceInterface _udp;
   final ProximityServiceInterface _ble;
   final ProximityServiceInterface _nearby;
+  final ProximityServiceInterface _supabase;
 
   late final Stream<BroadcastPacket> _merged;
   final _healthController = StreamController<TransportHealth>.broadcast();
@@ -31,12 +34,14 @@ class MultiTransportService implements ProximityServiceInterface {
   MultiTransportService()
       : _udp = UdpDiscoveryService(),
         _ble = BleDiscoveryService(),
-        _nearby = NearbyConnectionsService() {
+        _nearby = NearbyConnectionsService(),
+        _supabase = SupabaseDiscoveryService() {
     // Merge all three transport streams into one
     _merged = StreamGroup.merge([
       _udp.incomingPackets,
       _ble.incomingPackets,
       _nearby.incomingPackets,
+      _supabase.incomingPackets,
     ]);
   }
 
@@ -58,6 +63,7 @@ class MultiTransportService implements ProximityServiceInterface {
       _safeStart('UDP', _udp, ownPacket),
       _safeStart('BLE', _ble, ownPacket),
       _safeStart('Nearby', _nearby, ownPacket),
+      _safeStart('Cloud', _supabase, ownPacket),
     ]);
   }
 
@@ -88,6 +94,7 @@ class MultiTransportService implements ProximityServiceInterface {
       _safeStop(_udp),
       _safeStop(_ble),
       _safeStop(_nearby),
+      _safeStop(_supabase),
     ]);
   }
 
@@ -104,6 +111,7 @@ class MultiTransportService implements ProximityServiceInterface {
     await Future.wait([
       _safeRelay(_udp, packet),
       _safeRelay(_nearby, packet),
+      _safeRelay(_supabase, packet),
     ]);
   }
 
@@ -122,6 +130,7 @@ class MultiTransportService implements ProximityServiceInterface {
       _udp.dispose(),
       _ble.dispose(),
       _nearby.dispose(),
+      _supabase.dispose(),
     ]);
     await _healthController.close();
   }

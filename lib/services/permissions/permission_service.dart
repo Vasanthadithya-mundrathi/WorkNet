@@ -8,10 +8,10 @@ import 'package:device_info_plus/device_info_plus.dart';
 // ════════════════════════════════════════════════════════════════════
 
 enum WorkNetPermissionStatus {
-  granted,      // All required permissions OK → ready to scan
-  denied,       // At least one denied (can retry)
+  granted, // All required permissions OK → ready to scan
+  denied, // At least one denied (can retry)
   permanentlyDenied, // User said "Never Ask Again" → open settings
-  restricted,   // System-level restriction (parental controls, MDM)
+  restricted, // System-level restriction (parental controls, MDM)
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -32,13 +32,15 @@ class PermissionService {
     final sdkInt = androidInfo.version.sdkInt;
 
     if (sdkInt >= 33) {
-      // Android 13+ — Nearby devices group. Gallery picking uses the system
-      // photo picker and does not need media/storage permission.
+      // Android 13+ — ask every runtime bucket that can affect discovery.
+      // Gallery picking uses the system photo picker and does not need media
+      // or storage permission.
       return [
         Permission.bluetoothScan,
         Permission.bluetoothAdvertise,
         Permission.bluetoothConnect,
         Permission.nearbyWifiDevices,
+        Permission.locationWhenInUse,
       ];
     } else if (sdkInt >= 31) {
       // Android 12 / 12L. Location remains here for plugin compatibility.
@@ -65,7 +67,10 @@ class PermissionService {
   /// Request permissions needed to discover nearby peers.
   Future<WorkNetPermissionStatus> requestDiscovery() async {
     final requiredPerms = await _getDiscoveryRequired();
-    final results = await requiredPerms.request();
+    final Map<Permission, PermissionStatus> results = {};
+    for (final permission in requiredPerms) {
+      results[permission] = await permission.request();
+    }
     return _aggregate(results);
   }
 
@@ -97,6 +102,15 @@ class PermissionService {
     });
   }
 
+  Future<WorkNetPermissionStatus> checkNotification() async {
+    if (!Platform.isAndroid) return WorkNetPermissionStatus.granted;
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    if (androidInfo.version.sdkInt < 33) return WorkNetPermissionStatus.granted;
+    return _aggregate({
+      Permission.notification: await Permission.notification.status,
+    });
+  }
+
   /// Open the app settings page so the user can grant denied permissions.
   Future<bool> openSettings() => openAppSettings();
 
@@ -104,8 +118,7 @@ class PermissionService {
 
   WorkNetPermissionStatus _aggregate(
       Map<Permission, PermissionStatus> results) {
-    if (results.values
-        .any((s) => s == PermissionStatus.permanentlyDenied)) {
+    if (results.values.any((s) => s == PermissionStatus.permanentlyDenied)) {
       return WorkNetPermissionStatus.permanentlyDenied;
     }
     if (results.values.any((s) => s == PermissionStatus.restricted)) {
