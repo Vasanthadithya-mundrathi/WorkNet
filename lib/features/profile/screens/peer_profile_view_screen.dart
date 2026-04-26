@@ -147,11 +147,11 @@ class _PeerProfileView extends StatelessWidget {
   const _PeerProfileView({required this.peer});
 
   Color _spotlightColor(SpotlightType t) => switch (t) {
-        SpotlightType.hiring     => AppColors.spotlightHiring,
+        SpotlightType.hiring => AppColors.spotlightHiring,
         SpotlightType.openToWork => AppColors.spotlightOpenToWork,
-        SpotlightType.building   => AppColors.spotlightBuilding,
-        SpotlightType.learning   => AppColors.spotlightLearning,
-        SpotlightType.exploring  => AppColors.spotlightExploring,
+        SpotlightType.building => AppColors.spotlightBuilding,
+        SpotlightType.learning => AppColors.spotlightLearning,
+        SpotlightType.exploring => AppColors.spotlightExploring,
       };
 
   @override
@@ -192,9 +192,10 @@ class _PeerProfileView extends StatelessWidget {
                       children: [
                         const SizedBox(height: 56),
                         WorkNetAvatar(
-                          name:          p.name,
+                          name: p.name,
                           spotlightType: p.spotlightType,
-                          size:          80,
+                          imageBase64: p.avatarThumbBase64,
+                          size: 80,
                           ringThickness: 3,
                         ),
                         const SizedBox(height: 12),
@@ -269,9 +270,8 @@ class _PeerProfileView extends StatelessWidget {
                     Wrap(
                       spacing: 8,
                       runSpacing: 6,
-                      children: p.skills!
-                          .map((s) => _SkillPill(label: s))
-                          .toList(),
+                      children:
+                          p.skills!.map((s) => _SkillPill(label: s)).toList(),
                     ),
                     const SizedBox(height: 20),
                   ],
@@ -281,20 +281,20 @@ class _PeerProfileView extends StatelessWidget {
                   // ── Custom Sections ────────────────────────────────
                   if (p.sections != null && p.sections!.isNotEmpty) ...[
                     ...p.sections!.map((sec) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _SectionHeading(sec['h'] ?? ''),
-                          const SizedBox(height: 6),
-                          Text(
-                            sec['c'] ?? '',
-                            style: AppTypography.bodyLarge
-                                .copyWith(color: AppColors.textSecondary),
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _SectionHeading(sec['h'] ?? ''),
+                              const SizedBox(height: 6),
+                              Text(
+                                sec['c'] ?? '',
+                                style: AppTypography.bodyLarge
+                                    .copyWith(color: AppColors.textSecondary),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    )),
+                        )),
                   ],
 
                   // ── Links ──────────────────────────────────────────
@@ -303,9 +303,9 @@ class _PeerProfileView extends StatelessWidget {
                     const SizedBox(height: 10),
                     ...p.links!.map((link) => _LinkRow(
                           label: link['l'] ?? link['u'] ?? '',
-                          url:   link['u'] ?? '',
-                          onTap: () => launchGenericUrl(
-                              context, link['u'] ?? ''),
+                          url: link['u'] ?? '',
+                          onTap: () =>
+                              launchGenericUrl(context, link['u'] ?? ''),
                         )),
                     const SizedBox(height: 12),
                   ],
@@ -318,7 +318,8 @@ class _PeerProfileView extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () => launchLinkedIn(context, p.linkedInHandle),
+                        onPressed: () =>
+                            launchLinkedIn(context, p.linkedInHandle),
                         icon: const Icon(Icons.open_in_new, size: 18),
                         label: const Text('Open LinkedIn Profile'),
                         style: ElevatedButton.styleFrom(
@@ -332,7 +333,8 @@ class _PeerProfileView extends StatelessWidget {
                       onTap: () => launchLinkedIn(context, p.linkedInHandle),
                       onLongPress: () {
                         Clipboard.setData(ClipboardData(
-                          text: 'https://www.linkedin.com/in/${p.linkedInHandle}',
+                          text:
+                              'https://www.linkedin.com/in/${p.linkedInHandle}',
                         ));
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -372,7 +374,7 @@ class _PeerProfileView extends StatelessWidget {
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Discovered via local mesh — no data sent to the internet.',
+                          'Locally broadcast profile — identity is not verified by WorkNet.',
                           style: AppTypography.labelSmall
                               .copyWith(color: AppColors.textMuted),
                         ),
@@ -464,7 +466,8 @@ class _SectionHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         title,
-        style: AppTypography.headingSmall.copyWith(color: AppColors.textPrimary),
+        style:
+            AppTypography.headingSmall.copyWith(color: AppColors.textPrimary),
       );
 }
 

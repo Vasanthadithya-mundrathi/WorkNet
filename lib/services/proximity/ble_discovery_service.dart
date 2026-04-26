@@ -37,6 +37,7 @@ class BleDiscoveryService implements ProximityServiceInterface {
   StreamSubscription<List<ScanResult>>? _scanSubscription;
   Timer? _scanCycleTimer;
   BroadcastPacket? _ownPacket;
+  bool _scanWithServiceFilter = true;
 
   final _controller = StreamController<BroadcastPacket>.broadcast();
   // Track seen BLE device IDs to avoid duplicate stream emissions
@@ -69,14 +70,18 @@ class BleDiscoveryService implements ProximityServiceInterface {
     if (!_active) return;
 
     try {
-      // Scan for all devices advertising our service UUID
+      await _scanSubscription?.cancel();
+      _scanSubscription = FlutterBluePlus.scanResults.listen(_onScanResults);
+
+      // Alternate between service-filtered scans and manufacturer-data scans.
+      // Some devices omit service UUIDs in compact advertisements, but still
+      // include manufacturer data.
       await FlutterBluePlus.startScan(
-        withServices: [Guid(_serviceUuid)],
+        withServices: _scanWithServiceFilter ? [Guid(_serviceUuid)] : const [],
         timeout: Duration(milliseconds: WorkNetConstants.bleScanDurationMs),
         continuousUpdates: true,
       );
-
-      _scanSubscription = FlutterBluePlus.scanResults.listen(_onScanResults);
+      _scanWithServiceFilter = !_scanWithServiceFilter;
 
       // After scan window, pause then re-scan
       _scanCycleTimer = Timer(
@@ -142,6 +147,7 @@ class BleDiscoveryService implements ProximityServiceInterface {
     } catch (_) {}
     _seenBleIds.clear();
     _ownPacket = null;
+    _scanWithServiceFilter = true;
   }
 
   @override

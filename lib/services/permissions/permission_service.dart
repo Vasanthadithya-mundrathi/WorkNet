@@ -19,14 +19,11 @@ enum WorkNetPermissionStatus {
 // ════════════════════════════════════════════════════════════════════
 
 class PermissionService {
-  // Returns the set of permissions required for the current platform/SDK
-  Future<List<Permission>> _getRequired() async {
+  // Returns the set of permissions required for discovery on this platform/SDK.
+  Future<List<Permission>> _getDiscoveryRequired() async {
     if (Platform.isIOS) {
       return [
         Permission.bluetooth,
-        Permission.bluetoothAdvertise,
-        Permission.bluetoothScan,
-        Permission.bluetoothConnect,
       ];
     }
 
@@ -35,17 +32,16 @@ class PermissionService {
     final sdkInt = androidInfo.version.sdkInt;
 
     if (sdkInt >= 33) {
-      // Android 13+ — all modern permissions
+      // Android 13+ — Nearby devices group. Gallery picking uses the system
+      // photo picker and does not need media/storage permission.
       return [
         Permission.bluetoothScan,
         Permission.bluetoothAdvertise,
         Permission.bluetoothConnect,
         Permission.nearbyWifiDevices,
-        Permission.locationWhenInUse, // still needed for BLE scan result filtering
-        Permission.notification,      // foreground service notification
       ];
     } else if (sdkInt >= 31) {
-      // Android 12
+      // Android 12 / 12L. Location remains here for plugin compatibility.
       return [
         Permission.bluetoothScan,
         Permission.bluetoothAdvertise,
@@ -63,19 +59,42 @@ class PermissionService {
 
   /// Request all required permissions and return the aggregate status.
   Future<WorkNetPermissionStatus> requestAll() async {
-    final requiredPerms = await _getRequired();
+    return requestDiscovery();
+  }
+
+  /// Request permissions needed to discover nearby peers.
+  Future<WorkNetPermissionStatus> requestDiscovery() async {
+    final requiredPerms = await _getDiscoveryRequired();
     final results = await requiredPerms.request();
     return _aggregate(results);
   }
 
   /// Check current status without prompting.
   Future<WorkNetPermissionStatus> checkAll() async {
-    final requiredPerms = await _getRequired();
+    return checkDiscovery();
+  }
+
+  /// Check discovery permissions without prompting.
+  Future<WorkNetPermissionStatus> checkDiscovery() async {
+    final requiredPerms = await _getDiscoveryRequired();
     final Map<Permission, PermissionStatus> results = {};
     for (final p in requiredPerms) {
       results[p] = await p.status;
     }
     return _aggregate(results);
+  }
+
+  Future<WorkNetPermissionStatus> requestCamera() async {
+    return _aggregate({Permission.camera: await Permission.camera.request()});
+  }
+
+  Future<WorkNetPermissionStatus> requestNotification() async {
+    if (!Platform.isAndroid) return WorkNetPermissionStatus.granted;
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    if (androidInfo.version.sdkInt < 33) return WorkNetPermissionStatus.granted;
+    return _aggregate({
+      Permission.notification: await Permission.notification.request(),
+    });
   }
 
   /// Open the app settings page so the user can grant denied permissions.

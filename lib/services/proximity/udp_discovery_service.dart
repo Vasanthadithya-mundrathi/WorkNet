@@ -27,6 +27,7 @@ class UdpDiscoveryService implements ProximityServiceInterface {
   Timer? _broadcastTimer;
   BroadcastPacket? _ownPacket;
   bool _active = false;
+  List<InternetAddress> _broadcastAddresses = const [];
 
   final _controller = StreamController<BroadcastPacket>.broadcast();
 
@@ -51,6 +52,7 @@ class UdpDiscoveryService implements ProximityServiceInterface {
         reusePort: false,
       );
       _socket!.broadcastEnabled = true;
+      _broadcastAddresses = await _resolveBroadcastAddresses();
 
       // Listen for incoming packets
       _socket!.listen(_onRawData);
@@ -73,13 +75,10 @@ class UdpDiscoveryService implements ProximityServiceInterface {
     final pkt = _ownPacket;
     if (pkt == null || _socket == null || !_active) return;
     try {
-      final bytes = utf8.encode(jsonEncode(pkt.toJson()));
-      if (bytes.length > WorkNetConstants.maxPayloadBytes) return;
-      _socket!.send(
-        bytes,
-        InternetAddress('255.255.255.255'),
-        _port,
-      );
+      final bytes = pkt.toBytes();
+      for (final address in _broadcastAddresses) {
+        _socket!.send(bytes, address, _port);
+      }
     } catch (_) {}
   }
 
@@ -107,11 +106,48 @@ class UdpDiscoveryService implements ProximityServiceInterface {
   Future<void> relayPacket(BroadcastPacket packet) async {
     if (!_active || _socket == null) return;
     try {
-      final bytes = utf8.encode(jsonEncode(packet.toJson()));
-      if (bytes.length <= WorkNetConstants.maxPayloadBytes) {
-        _socket!.send(bytes, InternetAddress('255.255.255.255'), _port);
+      final bytes = packet.toBytes();
+      for (final address in _broadcastAddresses) {
+        _socket!.send(bytes, address, _port);
       }
     } catch (_) {}
+  }
+
+  Future<List<InternetAddress>> _resolveBroadcastAddresses() async {
+    final addresses = <String>{'255.255.255.255'};
+    try {
+      final interfaces = await NetworkInterface.list(
+        includeLoopback: false,
+        type: InternetAddressType.IPv4,
+      );
+      for (final interface in interfaces) {
+        for (final address in interface.addresses) {
+          final broadcast = _ipv4SubnetBroadcast(address.address);
+          if (broadcast != null) addresses.add(broadcast);
+        }
+      }
+    } catch (_) {
+      // Keep the universal limited broadcast fallback.
+    }
+    return addresses.map(InternetAddress.new).toList(growable: false);
+  }
+
+  String? _ipv4SubnetBroadcast(String address) {
+    final parts = address.split('.');
+    if (parts.length != 4) return null;
+    final octets = parts.map(int.tryParse).toList();
+    if (octets.any((part) => part == null || part < 0 || part > 255)) {
+      return null;
+    }
+    final first = octets[0]!;
+    if (first == 10) return '${octets[0]}.${octets[1]}.${octets[2]}.255';
+    if (first == 192 && octets[1] == 168) {
+      return '${octets[0]}.${octets[1]}.${octets[2]}.255';
+    }
+    if (first == 172 && octets[1]! >= 16 && octets[1]! <= 31) {
+      return '${octets[0]}.${octets[1]}.${octets[2]}.255';
+    }
+    return null;
   }
 
   @override
@@ -122,6 +158,7 @@ class UdpDiscoveryService implements ProximityServiceInterface {
     _socket?.close();
     _socket = null;
     _ownPacket = null;
+    _broadcastAddresses = const [];
   }
 
   @override

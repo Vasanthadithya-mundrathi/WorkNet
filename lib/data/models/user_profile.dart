@@ -14,19 +14,19 @@ enum SpotlightType {
   exploring;
 
   String get displayLabel => switch (this) {
-        SpotlightType.hiring     => 'Hiring',
+        SpotlightType.hiring => 'Hiring',
         SpotlightType.openToWork => 'Open to Work',
-        SpotlightType.building   => 'Building / Collab',
-        SpotlightType.learning   => 'Learning',
-        SpotlightType.exploring  => 'Just Exploring',
+        SpotlightType.building => 'Building / Collab',
+        SpotlightType.learning => 'Learning',
+        SpotlightType.exploring => 'Just Exploring',
       };
 
   String get emoji => switch (this) {
-        SpotlightType.hiring     => '🟦',
+        SpotlightType.hiring => '🟦',
         SpotlightType.openToWork => '🟩',
-        SpotlightType.building   => '🟣',
-        SpotlightType.learning   => '🟠',
-        SpotlightType.exploring  => '⚪',
+        SpotlightType.building => '🟣',
+        SpotlightType.learning => '🟠',
+        SpotlightType.exploring => '⚪',
       };
 }
 
@@ -42,11 +42,11 @@ enum ExperienceLevel {
   sixPlus;
 
   String get label => switch (this) {
-        ExperienceLevel.student    => 'Student',
-        ExperienceLevel.fresher    => 'Fresher (< 1 yr)',
+        ExperienceLevel.student => 'Student',
+        ExperienceLevel.fresher => 'Fresher (< 1 yr)',
         ExperienceLevel.oneToThree => '1–3 yrs',
         ExperienceLevel.threeToSix => '3–6 yrs',
-        ExperienceLevel.sixPlus    => '6+ yrs',
+        ExperienceLevel.sixPlus => '6+ yrs',
       };
 }
 
@@ -69,8 +69,8 @@ class ProfileSection {
 
 @embedded
 class ProfileLink {
-  late String label;   // e.g. "GitHub", "Portfolio"
-  late String url;     // full URL e.g. https://github.com/...
+  late String label; // e.g. "GitHub", "Portfolio"
+  late String url; // full URL e.g. https://github.com/...
 
   ProfileLink();
 }
@@ -97,6 +97,13 @@ class UserProfile {
   @enumerated
   SpotlightType spotlightType = SpotlightType.exploring;
   String spotlightNote = '';
+
+  // ── Profile photo ────────────────────────────────────────────────
+  String? avatarLocalPath;
+  String? avatarThumbBase64;
+  String? avatarHash;
+  DateTime? avatarUpdatedAt;
+  bool shareAvatar = false;
 
   // ── Optional broadcast fields (toggleable) ───────────────────────
   int? ageYears;
@@ -137,6 +144,9 @@ class UserProfile {
         'experience': experienceLabel,
         'spotlightType': spotlightType.name,
         'spotlightNote': spotlightNote,
+        if (shareAvatar && avatarThumbBase64 != null)
+          'avatarThumb': avatarThumbBase64,
+        if (shareAvatar && avatarHash != null) 'avatarHash': avatarHash,
         if (showAge && ageYears != null) 'age': ageYears,
         if (showGender && gender != null) 'gender': gender,
         if (showBio && bio != null) 'bio': bio,

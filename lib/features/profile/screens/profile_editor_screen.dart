@@ -4,6 +4,9 @@ import 'package:worknet/core/theme/app_colors.dart';
 import 'package:worknet/core/theme/app_typography.dart';
 import 'package:worknet/data/models/user_profile.dart';
 import 'package:worknet/data/repositories/profile_repository.dart';
+import 'package:worknet/services/permissions/permission_service.dart';
+import 'package:worknet/services/profile/avatar_service.dart';
+import 'package:worknet/shared/widgets/worknet_avatar.dart';
 
 // ════════════════════════════════════════════════════════════════════
 // ProfileEditorScreen — edit fields + custom sections + custom links
@@ -23,67 +26,89 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
   bool _saving = false;
 
   // Core controllers
-  final _nameCtrl     = TextEditingController();
-  final _roleCtrl     = TextEditingController();
-  final _companyCtrl  = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _roleCtrl = TextEditingController();
+  final _companyCtrl = TextEditingController();
   final _linkedInCtrl = TextEditingController();
-  final _bioCtrl      = TextEditingController();
-  final _skillsCtrl   = TextEditingController();
+  final _bioCtrl = TextEditingController();
+  final _skillsCtrl = TextEditingController();
 
   ExperienceLevel _experience = ExperienceLevel.student;
-  bool _showAge    = false;
+  bool _showAge = false;
   bool _showGender = false;
-  bool _showBio    = true;
+  bool _showBio = true;
   bool _showSkills = true;
-  bool _showLinks  = true;
+  bool _showLinks = true;
+  bool _shareAvatar = false;
+  String? _avatarLocalPath;
+  String? _avatarThumbBase64;
+  String? _avatarHash;
+  DateTime? _avatarUpdatedAt;
 
   // Custom sections & links (local mutable lists)
   final List<_SectionEntry> _sections = [];
-  final List<_LinkEntry>    _links    = [];
+  final List<_LinkEntry> _links = [];
 
   late UserProfile _profile;
 
   @override
   void dispose() {
-    for (final c in [_nameCtrl, _roleCtrl, _companyCtrl,
-        _linkedInCtrl, _bioCtrl, _skillsCtrl]) {
+    for (final c in [
+      _nameCtrl,
+      _roleCtrl,
+      _companyCtrl,
+      _linkedInCtrl,
+      _bioCtrl,
+      _skillsCtrl
+    ]) {
       c.dispose();
     }
-    for (final s in _sections) { s.headingCtrl.dispose(); s.contentCtrl.dispose(); }
-    for (final l in _links)    { l.labelCtrl.dispose();   l.urlCtrl.dispose(); }
+    for (final s in _sections) {
+      s.headingCtrl.dispose();
+      s.contentCtrl.dispose();
+    }
+    for (final l in _links) {
+      l.labelCtrl.dispose();
+      l.urlCtrl.dispose();
+    }
     super.dispose();
   }
 
   void _populateFrom(UserProfile profile) {
-    _nameCtrl.text     = profile.name;
-    _roleCtrl.text     = profile.currentRole;
-    _companyCtrl.text  = profile.companyOrCollege;
+    _nameCtrl.text = profile.name;
+    _roleCtrl.text = profile.currentRole;
+    _companyCtrl.text = profile.companyOrCollege;
     _linkedInCtrl.text = profile.linkedInHandle;
-    _bioCtrl.text      = profile.bio ?? '';
-    _skillsCtrl.text   = profile.skills.join(', ');
+    _bioCtrl.text = profile.bio ?? '';
+    _skillsCtrl.text = profile.skills.join(', ');
     _experience = ExperienceLevel.values.firstWhere(
       (e) => e.label == profile.experienceLabel,
       orElse: () => ExperienceLevel.student,
     );
-    _showAge    = profile.showAge;
+    _showAge = profile.showAge;
     _showGender = profile.showGender;
-    _showBio    = profile.showBio;
+    _showBio = profile.showBio;
     _showSkills = profile.showSkills;
-    _showLinks  = profile.showLinks;
-    _profile    = profile;
+    _showLinks = profile.showLinks;
+    _shareAvatar = profile.shareAvatar;
+    _avatarLocalPath = profile.avatarLocalPath;
+    _avatarThumbBase64 = profile.avatarThumbBase64;
+    _avatarHash = profile.avatarHash;
+    _avatarUpdatedAt = profile.avatarUpdatedAt;
+    _profile = profile;
 
     _sections
       ..clear()
       ..addAll(profile.customSections.map((s) => _SectionEntry(
             headingCtrl: TextEditingController(text: s.heading),
             contentCtrl: TextEditingController(text: s.content),
-            isVisible:   s.isVisible,
+            isVisible: s.isVisible,
           )));
     _links
       ..clear()
       ..addAll(profile.links.map((l) => _LinkEntry(
             labelCtrl: TextEditingController(text: l.label),
-            urlCtrl:   TextEditingController(text: l.url),
+            urlCtrl: TextEditingController(text: l.url),
           )));
     _loaded = true;
   }
@@ -92,7 +117,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
     setState(() => _sections.add(_SectionEntry(
           headingCtrl: TextEditingController(),
           contentCtrl: TextEditingController(),
-          isVisible:   true,
+          isVisible: true,
         )));
   }
 
@@ -106,7 +131,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
   void _addLink() {
     setState(() => _links.add(_LinkEntry(
           labelCtrl: TextEditingController(),
-          urlCtrl:   TextEditingController(),
+          urlCtrl: TextEditingController(),
         )));
   }
 
@@ -123,48 +148,86 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
     try {
       final repo = await ref.read(profileRepositoryProvider.future);
       _profile
-        ..name             = _nameCtrl.text.trim()
-        ..currentRole      = _roleCtrl.text.trim()
+        ..name = _nameCtrl.text.trim()
+        ..currentRole = _roleCtrl.text.trim()
         ..companyOrCollege = _companyCtrl.text.trim()
-        ..linkedInHandle   = _linkedInCtrl.text.trim()
-        ..bio              = _bioCtrl.text.trim()
-        ..skills           = _skillsCtrl.text
+        ..linkedInHandle = _linkedInCtrl.text.trim()
+        ..avatarLocalPath = _avatarLocalPath
+        ..avatarThumbBase64 = _avatarThumbBase64
+        ..avatarHash = _avatarHash
+        ..avatarUpdatedAt = _avatarUpdatedAt
+        ..shareAvatar = _avatarLocalPath != null && _shareAvatar
+        ..bio = _bioCtrl.text.trim()
+        ..skills = _skillsCtrl.text
             .split(',')
             .map((s) => s.trim())
             .where((s) => s.isNotEmpty)
             .toList()
-        ..experienceLabel  = _experience.label
-        ..showAge          = _showAge
-        ..showGender       = _showGender
-        ..showBio          = _showBio
-        ..showSkills       = _showSkills
-        ..showLinks        = _showLinks
-        ..customSections   = _sections
+        ..experienceLabel = _experience.label
+        ..showAge = _showAge
+        ..showGender = _showGender
+        ..showBio = _showBio
+        ..showSkills = _showSkills
+        ..showLinks = _showLinks
+        ..customSections = _sections
             .where((s) => s.headingCtrl.text.trim().isNotEmpty)
             .map((s) {
-              final sec = ProfileSection();
-              sec.heading   = s.headingCtrl.text.trim();
-              sec.content   = s.contentCtrl.text.trim();
-              sec.isVisible = s.isVisible;
-              return sec;
-            })
-            .toList()
-        ..links = _links
-            .where((l) => l.urlCtrl.text.trim().isNotEmpty)
-            .map((l) {
-              final link = ProfileLink();
-              link.label = l.labelCtrl.text.trim().isEmpty
-                  ? l.urlCtrl.text.trim()
-                  : l.labelCtrl.text.trim();
-              link.url = l.urlCtrl.text.trim();
-              return link;
-            })
-            .toList();
+          final sec = ProfileSection();
+          sec.heading = s.headingCtrl.text.trim();
+          sec.content = s.contentCtrl.text.trim();
+          sec.isVisible = s.isVisible;
+          return sec;
+        }).toList()
+        ..links =
+            _links.where((l) => l.urlCtrl.text.trim().isNotEmpty).map((l) {
+          final link = ProfileLink();
+          link.label = l.labelCtrl.text.trim().isEmpty
+              ? l.urlCtrl.text.trim()
+              : l.labelCtrl.text.trim();
+          link.url = l.urlCtrl.text.trim();
+          return link;
+        }).toList();
       await repo.createOrUpdateProfile(_profile);
       if (mounted) Navigator.of(context).pop();
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _pickAvatar() async {
+    final result = await ref.read(avatarServiceProvider).pickFromGallery();
+    if (result == null || !mounted) return;
+    setState(() {
+      _avatarLocalPath = result.localPath;
+      _avatarThumbBase64 = result.thumbBase64;
+      _avatarHash = result.hash;
+      _avatarUpdatedAt = DateTime.now();
+    });
+  }
+
+  Future<void> _captureAvatar() async {
+    final status = await ref.read(permissionServiceProvider).requestCamera();
+    if (status != WorkNetPermissionStatus.granted) return;
+    final result = await ref.read(avatarServiceProvider).captureWithCamera();
+    if (result == null || !mounted) return;
+    setState(() {
+      _avatarLocalPath = result.localPath;
+      _avatarThumbBase64 = result.thumbBase64;
+      _avatarHash = result.hash;
+      _avatarUpdatedAt = DateTime.now();
+    });
+  }
+
+  Future<void> _removeAvatar() async {
+    final oldPath = _avatarLocalPath;
+    setState(() {
+      _avatarLocalPath = null;
+      _avatarThumbBase64 = null;
+      _avatarHash = null;
+      _avatarUpdatedAt = null;
+      _shareAvatar = false;
+    });
+    await ref.read(avatarServiceProvider).deleteAvatarFile(oldPath);
   }
 
   @override
@@ -184,7 +247,8 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
         if (profile != null && !_loaded) _populateFrom(profile);
         if (!_loaded) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: AppColors.cyan)),
+            body:
+                Center(child: CircularProgressIndicator(color: AppColors.cyan)),
           );
         }
         return Scaffold(
@@ -219,6 +283,19 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
                 children: [
                   // ── Basic Info ──────────────────────────────────────
                   _SectionHeader('Basic Info'),
+                  _AvatarEditor(
+                    name: _nameCtrl.text.trim(),
+                    spotlightType: _profile.spotlightType,
+                    avatarPath: _avatarLocalPath,
+                    shareAvatar: _shareAvatar,
+                    onPick: _pickAvatar,
+                    onCamera: _captureAvatar,
+                    onRemove: _removeAvatar,
+                    onShareChanged: _avatarLocalPath == null
+                        ? null
+                        : (v) => setState(() => _shareAvatar = v),
+                  ),
+                  const SizedBox(height: 16),
                   _Field('Name', _nameCtrl, required: true),
                   _Field('Current Role', _roleCtrl, required: true),
                   _Field('Company / College', _companyCtrl, required: true),
@@ -262,8 +339,8 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
                       _SectionHeader('Sections'),
                       TextButton.icon(
                         onPressed: _addSection,
-                        icon: const Icon(Icons.add, size: 16,
-                            color: AppColors.cyan),
+                        icon: const Icon(Icons.add,
+                            size: 16, color: AppColors.cyan),
                         label: Text('Add Section',
                             style: AppTypography.labelSmall
                                 .copyWith(color: AppColors.cyan)),
@@ -274,11 +351,10 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
                     _EmptyHint(
                         'Tap "Add Section" to share a custom highlight like\n'
                         '"What I\'m building", "Looking for", etc.'),
-                  ..._sections.asMap().entries.map((e) =>
-                      _SectionCard(
-                        index:     e.key,
-                        entry:     e.value,
-                        onRemove:  () => _removeSection(e.key),
+                  ..._sections.asMap().entries.map((e) => _SectionCard(
+                        index: e.key,
+                        entry: e.value,
+                        onRemove: () => _removeSection(e.key),
                         onChanged: () => setState(() {}),
                       )),
 
@@ -315,10 +391,9 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
                   if (_links.isEmpty)
                     _EmptyHint(
                         'Add GitHub, Portfolio, Twitter, Devpost, or any URL.'),
-                  ..._links.asMap().entries.map((e) =>
-                      _LinkCard(
-                        index:    e.key,
-                        entry:    e.value,
+                  ..._links.asMap().entries.map((e) => _LinkCard(
+                        index: e.key,
+                        entry: e.value,
                         onRemove: () => _removeLink(e.key),
                       )),
 
@@ -365,6 +440,96 @@ class _LinkEntry {
   final TextEditingController labelCtrl;
   final TextEditingController urlCtrl;
   _LinkEntry({required this.labelCtrl, required this.urlCtrl});
+}
+
+class _AvatarEditor extends StatelessWidget {
+  final String name;
+  final SpotlightType spotlightType;
+  final String? avatarPath;
+  final bool shareAvatar;
+  final VoidCallback onPick;
+  final VoidCallback onCamera;
+  final VoidCallback onRemove;
+  final ValueChanged<bool>? onShareChanged;
+
+  const _AvatarEditor({
+    required this.name,
+    required this.spotlightType,
+    required this.avatarPath,
+    required this.shareAvatar,
+    required this.onPick,
+    required this.onCamera,
+    required this.onRemove,
+    required this.onShareChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhoto = avatarPath != null && avatarPath!.isNotEmpty;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          WorkNetAvatar(
+            name: name.isEmpty ? 'WorkNet User' : name,
+            spotlightType: spotlightType,
+            imagePath: avatarPath,
+            size: 72,
+            ringThickness: 3,
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onPick,
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: const Text('Gallery'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onCamera,
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: const Text('Camera'),
+                ),
+              ),
+            ],
+          ),
+          if (hasPhoto) ...[
+            TextButton.icon(
+              onPressed: onRemove,
+              icon: const Icon(Icons.delete_outline, color: AppColors.error),
+              label: const Text('Remove photo'),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'Share photo with nearby people',
+                style: AppTypography.bodyMedium
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              subtitle: Text(
+                'A small compressed thumbnail is included in local broadcasts.',
+                style: AppTypography.bodySmall
+                    .copyWith(color: AppColors.textMuted),
+              ),
+              value: shareAvatar,
+              onChanged: onShareChanged,
+              activeColor: AppColors.cyan,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 // ── Custom Section Card ────────────────────────────────────────────
@@ -427,8 +592,8 @@ class _SectionCard extends StatelessWidget {
           const SizedBox(height: 8),
           TextField(
             controller: entry.headingCtrl,
-            style: AppTypography.labelLarge
-                .copyWith(color: AppColors.textPrimary),
+            style:
+                AppTypography.labelLarge.copyWith(color: AppColors.textPrimary),
             decoration: const InputDecoration(
               hintText: 'Section heading (e.g. "What I\'m building")',
               contentPadding:
@@ -439,8 +604,8 @@ class _SectionCard extends StatelessWidget {
           TextField(
             controller: entry.contentCtrl,
             maxLines: 3,
-            style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textPrimary),
+            style:
+                AppTypography.bodyMedium.copyWith(color: AppColors.textPrimary),
             decoration: const InputDecoration(
               hintText: 'Write something...',
               contentPadding:
@@ -495,8 +660,8 @@ class _LinkCard extends StatelessWidget {
           const SizedBox(height: 8),
           TextField(
             controller: entry.labelCtrl,
-            style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textPrimary),
+            style:
+                AppTypography.bodyMedium.copyWith(color: AppColors.textPrimary),
             decoration: const InputDecoration(
               hintText: 'Label (e.g. GitHub, Portfolio, Twitter)',
               contentPadding:
@@ -507,8 +672,8 @@ class _LinkCard extends StatelessWidget {
           TextField(
             controller: entry.urlCtrl,
             keyboardType: TextInputType.url,
-            style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textPrimary),
+            style:
+                AppTypography.bodyMedium.copyWith(color: AppColors.textPrimary),
             decoration: const InputDecoration(
               hintText: 'https://',
               contentPadding:
@@ -533,8 +698,7 @@ class _EmptyHint extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(text,
-            style: AppTypography.bodySmall
-                .copyWith(color: AppColors.textMuted),
+            style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
             textAlign: TextAlign.center),
       );
 }
@@ -562,8 +726,11 @@ class _Field extends StatelessWidget {
   final int? maxLength;
 
   const _Field(this.label, this.controller,
-      {this.required = false, this.prefix, this.hint,
-       this.maxLines = 1, this.maxLength});
+      {this.required = false,
+      this.prefix,
+      this.hint,
+      this.maxLines = 1,
+      this.maxLength});
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -572,19 +739,17 @@ class _Field extends StatelessWidget {
           controller: controller,
           maxLines: maxLines,
           maxLength: maxLength,
-          style: AppTypography.bodyLarge
-              .copyWith(color: AppColors.textPrimary),
+          style: AppTypography.bodyLarge.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: label,
             prefixText: prefix,
             hintText: hint,
-            prefixStyle: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textMuted),
+            prefixStyle:
+                AppTypography.bodyMedium.copyWith(color: AppColors.textMuted),
           ),
           validator: required
-              ? (v) => (v == null || v.trim().isEmpty)
-                  ? '$label is required'
-                  : null
+              ? (v) =>
+                  (v == null || v.trim().isEmpty) ? '$label is required' : null
               : null,
         ),
       );
@@ -635,8 +800,8 @@ class _VisibilityField extends StatelessWidget {
             controller: controller,
             maxLines: maxLines,
             maxLength: maxLength,
-            style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textPrimary),
+            style:
+                AppTypography.bodyMedium.copyWith(color: AppColors.textPrimary),
             decoration: InputDecoration(hintText: hint),
           ),
         ],
@@ -676,12 +841,10 @@ class _ExperienceRow extends StatelessWidget {
         child: DropdownButtonFormField<ExperienceLevel>(
           value: value,
           dropdownColor: AppColors.surfaceElevated,
-          style: AppTypography.bodyLarge
-              .copyWith(color: AppColors.textPrimary),
+          style: AppTypography.bodyLarge.copyWith(color: AppColors.textPrimary),
           decoration: const InputDecoration(labelText: 'Experience'),
           items: ExperienceLevel.values
-              .map((l) =>
-                  DropdownMenuItem(value: l, child: Text(l.label)))
+              .map((l) => DropdownMenuItem(value: l, child: Text(l.label)))
               .toList(),
           onChanged: (v) => v != null ? onChanged(v) : null,
         ),

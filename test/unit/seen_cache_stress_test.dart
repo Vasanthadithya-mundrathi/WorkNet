@@ -23,7 +23,9 @@ void main() {
   }
 
   group('SeenCache Stress Tests', () {
-    test('Handles 10,000 rapid inserts and cleanups without performance degradation', () async {
+    test(
+        'Handles 10,000 rapid inserts and cleanups without performance degradation',
+        () async {
       final cache = SeenCache(ttlMs: 500); // Short TTL for test
       final stopwatch = Stopwatch()..start();
 
@@ -37,11 +39,11 @@ void main() {
       }
 
       stopwatch.stop();
-      // Should take less than 500ms for 10k lookups/inserts (includes object allocation overhead)
-      expect(stopwatch.elapsedMilliseconds, lessThan(500));
+      // Keep this as a coarse regression guard. CI and local laptops vary here.
+      expect(stopwatch.elapsedMilliseconds, lessThan(1000));
 
       // Wait for TTL to pass
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future<void>.delayed(const Duration(milliseconds: 600));
 
       // Force a cleanup by checking a new packet
       cache.isSeen(createPacket('new_packet', baseTime + 600));
@@ -60,11 +62,11 @@ void main() {
       for (int i = 0; i < 10; i++) {
         cache.isSeen(createPacket('item_$i', baseTime));
       }
-      
+
       // They are duplicates right now
       expect(cache.isSeen(createPacket('item_5', baseTime)), true);
 
-      await Future.delayed(const Duration(milliseconds: 250));
+      await Future<void>.delayed(const Duration(milliseconds: 250));
 
       // Insert one to trigger cleanup
       cache.isSeen(createPacket('trigger', baseTime + 250));

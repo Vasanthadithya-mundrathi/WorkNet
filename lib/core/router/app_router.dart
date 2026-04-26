@@ -12,6 +12,7 @@ import 'package:worknet/features/profile/screens/profile_editor_screen.dart';
 import 'package:worknet/features/profile/screens/peer_profile_view_screen.dart';
 import 'package:worknet/features/settings/screens/settings_screen.dart';
 import 'package:worknet/features/settings/screens/privacy_settings_screen.dart';
+import 'package:worknet/features/settings/screens/about_screen.dart';
 import 'package:worknet/data/repositories/profile_repository.dart';
 import 'package:worknet/services/permissions/permission_service.dart';
 
@@ -20,16 +21,17 @@ import 'package:worknet/services/permissions/permission_service.dart';
 // ════════════════════════════════════════════════════════════════════
 
 abstract final class AppRoutes {
-  static const String onboarding      = '/onboarding';
-  static const String profileSetup    = '/onboarding/profile';
-  static const String spotlightSetup  = '/onboarding/spotlight';
-  static const String permissions     = '/onboarding/permissions';
-  static const String feed            = '/';
-  static const String search          = '/search';
-  static const String myProfile       = '/me';
-  static const String profileEditor   = '/me/edit';
-  static const String settings        = '/settings';
+  static const String onboarding = '/onboarding';
+  static const String profileSetup = '/onboarding/profile';
+  static const String spotlightSetup = '/onboarding/spotlight';
+  static const String permissions = '/onboarding/permissions';
+  static const String feed = '/';
+  static const String search = '/search';
+  static const String myProfile = '/me';
+  static const String profileEditor = '/me/edit';
+  static const String settings = '/settings';
   static const String privacySettings = '/settings/privacy';
+  static const String about = '/settings/about';
   static String peerProfile(String userId) => '/profile/$userId';
 }
 
@@ -108,6 +110,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.privacySettings,
         builder: (ctx, state) => const PrivacySettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.about,
+        builder: (ctx, state) => const AboutScreen(),
       ),
     ],
     errorBuilder: (ctx, state) => Scaffold(

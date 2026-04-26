@@ -17,7 +17,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(myProfileProvider);
-    final feedAsync    = ref.watch(feedProvider);
+    final feedAsync = ref.watch(feedProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -28,8 +28,8 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => Center(child: Text('$e')),
-        data:    (profile) {
+        error: (e, _) => Center(child: Text('$e')),
+        data: (profile) {
           if (profile == null) return const SizedBox.shrink();
           final isStealthActive =
               feedAsync.valueOrNull?.isStealthMode ?? profile.stealthMode;
@@ -44,8 +44,7 @@ class SettingsScreen extends ConsumerWidget {
                 icon: isStealthActive
                     ? Icons.visibility_off_rounded
                     : Icons.visibility_rounded,
-                iconColor:
-                    isStealthActive ? AppColors.error : AppColors.cyan,
+                iconColor: isStealthActive ? AppColors.error : AppColors.cyan,
                 title: 'Stealth Mode',
                 subtitle: isStealthActive
                     ? 'You are invisible. Tap to resume broadcasting.'
@@ -109,9 +108,22 @@ class SettingsScreen extends ConsumerWidget {
                 icon: Icons.privacy_tip_outlined,
                 iconColor: AppColors.textSecondary,
                 title: 'Privacy & Data',
-                subtitle: 'Control what you broadcast and view your data usage.',
-                trailing: const Icon(Icons.chevron_right, size: 16, color: AppColors.textMuted),
+                subtitle:
+                    'Control what you broadcast and view your data usage.',
+                trailing: const Icon(Icons.chevron_right,
+                    size: 16, color: AppColors.textMuted),
                 onTap: () => context.push(AppRoutes.privacySettings),
+              ),
+
+              _SettingCard(
+                icon: Icons.info_outline_rounded,
+                iconColor: AppColors.cyan,
+                title: 'About WorkNet',
+                subtitle:
+                    'How the app works, what stays local, and security protections.',
+                trailing: const Icon(Icons.chevron_right,
+                    size: 16, color: AppColors.textMuted),
+                onTap: () => context.push(AppRoutes.about),
               ),
 
               _SettingCard(

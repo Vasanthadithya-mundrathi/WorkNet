@@ -26,7 +26,10 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen> {
   Future<void> _request() async {
     setState(() => _requesting = true);
     final svc = ref.read(permissionServiceProvider);
-    final status = await svc.requestAll();
+    final status = await svc.requestDiscovery();
+    if (status == WorkNetPermissionStatus.granted) {
+      await svc.requestNotification();
+    }
     if (!mounted) return;
     setState(() => _requesting = false);
 
@@ -80,9 +83,9 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen> {
           builder: (context, constraints) {
             final h = constraints.maxHeight;
             // Scale spacing based on available height
-            final topGap    = h * 0.04;
-            final midGap    = h * 0.03;
-            final smallGap  = h * 0.02;
+            final topGap = h * 0.04;
+            final midGap = h * 0.03;
+            final smallGap = h * 0.02;
 
             return SingleChildScrollView(
               // Allow scrolling if content still overflows on tiny screens
@@ -139,8 +142,8 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen> {
 
                       Text(
                         'WorkNet needs Bluetooth, WiFi and Location '
-                        'access to broadcast your profile and discover '
-                        'nearby professionals.',
+                        'access where required to broadcast your profile '
+                        'and discover nearby professionals.',
                         style: AppTypography.bodyMedium
                             .copyWith(color: AppColors.textSecondary),
                         textAlign: TextAlign.center,
@@ -176,11 +179,11 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen> {
                             height: 24,
                             child: Checkbox(
                               value: _agreedToPolicy,
-                              onChanged: (val) =>
-                                  setState(() => _agreedToPolicy = val ?? false),
+                              onChanged: (val) => setState(
+                                  () => _agreedToPolicy = val ?? false),
                               activeColor: AppColors.cyan,
-                              side:
-                                  const BorderSide(color: AppColors.textSecondary),
+                              side: const BorderSide(
+                                  color: AppColors.textSecondary),
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
                             ),
@@ -209,11 +212,11 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed:
-                              (_requesting || !_agreedToPolicy) ? null : _request,
+                          onPressed: (_requesting || !_agreedToPolicy)
+                              ? null
+                              : _request,
                           style: ElevatedButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: _requesting
                               ? const SizedBox(
@@ -244,8 +247,8 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen> {
                         'Developed by\n'
                         'Vasanthadithya (160123749049) & '
                         'Sai Geethika (160123749302)',
-                        style: AppTypography.labelSmall
-                            .copyWith(color: AppColors.textMuted.withAlpha(150)),
+                        style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.textMuted.withAlpha(150)),
                         textAlign: TextAlign.center,
                       ).animate().fadeIn(delay: 500.ms),
 
@@ -302,6 +305,12 @@ const _permItems = [
     title: 'Nearby Devices',
     desc: 'WiFi Direct P2P mesh',
     color: AppColors.spotlightHiring,
+  ),
+  _PermItem(
+    icon: Icons.notifications_none_rounded,
+    title: 'Notifications',
+    desc: 'Background discovery status',
+    color: AppColors.warning,
   ),
 ];
 

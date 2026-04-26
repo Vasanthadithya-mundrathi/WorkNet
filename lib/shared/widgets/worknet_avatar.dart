@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/user_profile.dart';
@@ -10,6 +13,8 @@ class WorkNetAvatar extends StatelessWidget {
   final String name;
   final SpotlightType spotlightType;
   final String? imageUrl;
+  final String? imagePath;
+  final String? imageBase64;
   final double size;
   final double ringThickness;
 
@@ -18,6 +23,8 @@ class WorkNetAvatar extends StatelessWidget {
     required this.name,
     required this.spotlightType,
     this.imageUrl,
+    this.imagePath,
+    this.imageBase64,
     this.size = 52,
     this.ringThickness = 2.5,
   });
@@ -40,6 +47,8 @@ class WorkNetAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = _imageProvider;
+
     return Container(
       width: size + ringThickness * 2 + 4,
       height: size + ringThickness * 2 + 4,
@@ -62,9 +71,8 @@ class WorkNetAvatar extends StatelessWidget {
         child: CircleAvatar(
           radius: size / 2,
           backgroundColor: AppColors.surfaceElevated,
-          backgroundImage:
-              imageUrl != null ? NetworkImage(imageUrl!) : null,
-          child: imageUrl == null
+          backgroundImage: imageProvider,
+          child: imageProvider == null
               ? Text(
                   _initials,
                   style: TextStyle(
@@ -77,5 +85,22 @@ class WorkNetAvatar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  ImageProvider? get _imageProvider {
+    if (imagePath != null && imagePath!.isNotEmpty) {
+      return FileImage(File(imagePath!));
+    }
+    if (imageBase64 != null && imageBase64!.isNotEmpty) {
+      try {
+        return MemoryImage(base64Decode(imageBase64!));
+      } catch (_) {
+        return null;
+      }
+    }
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return NetworkImage(imageUrl!);
+    }
+    return null;
   }
 }

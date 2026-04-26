@@ -47,6 +47,7 @@ class PeerCard extends StatelessWidget {
                   WorkNetAvatar(
                     name: p.name,
                     spotlightType: p.spotlightType,
+                    imageBase64: p.avatarThumbBase64,
                     size: 48,
                   ),
                   const SizedBox(width: 12),
@@ -115,18 +116,18 @@ class PeerCard extends StatelessWidget {
           ],
         ),
       )
-      .animate()
-      .fadeIn(
-        delay: Duration(milliseconds: animationIndex * 40),
-        duration: 300.ms,
-      )
-      .slideY(
-        begin: 0.08,
-        end: 0,
-        delay: Duration(milliseconds: animationIndex * 40),
-        duration: 300.ms,
-        curve: Curves.easeOut,
-      ),
+          .animate()
+          .fadeIn(
+            delay: Duration(milliseconds: animationIndex * 40),
+            duration: 300.ms,
+          )
+          .slideY(
+            begin: 0.08,
+            end: 0,
+            delay: Duration(milliseconds: animationIndex * 40),
+            duration: 300.ms,
+            curve: Curves.easeOut,
+          ),
     );
   }
 }
@@ -174,11 +175,11 @@ class _SpotlightBanner extends StatelessWidget {
   const _SpotlightBanner({required this.type, required this.note});
 
   Color get _color => switch (type) {
-        SpotlightType.hiring     => AppColors.spotlightHiring,
+        SpotlightType.hiring => AppColors.spotlightHiring,
         SpotlightType.openToWork => AppColors.spotlightOpenToWork,
-        SpotlightType.building   => AppColors.spotlightBuilding,
-        SpotlightType.learning   => AppColors.spotlightLearning,
-        SpotlightType.exploring  => AppColors.spotlightExploring,
+        SpotlightType.building => AppColors.spotlightBuilding,
+        SpotlightType.learning => AppColors.spotlightLearning,
+        SpotlightType.exploring => AppColors.spotlightExploring,
       };
 
   @override
@@ -226,7 +227,8 @@ class _SkillChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+        style:
+            AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
       ),
     );
   }

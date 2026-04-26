@@ -10,6 +10,7 @@ import 'package:worknet/shared/widgets/empty_states.dart';
 import 'package:worknet/features/feed/providers/feed_provider.dart';
 import 'package:worknet/features/feed/widgets/peer_card.dart';
 import 'package:worknet/features/feed/widgets/stats_bar.dart';
+import 'package:worknet/services/proximity/multi_transport_service.dart';
 
 // ════════════════════════════════════════════════════════════════════
 // NearbyFeedScreen — the home screen / core WorkNet experience
@@ -51,16 +52,19 @@ class _NearbyFeedScreenState extends ConsumerState<NearbyFeedScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.wifi_off_rounded, color: AppColors.error, size: 48),
+                const Icon(Icons.wifi_off_rounded,
+                    color: AppColors.error, size: 48),
                 const SizedBox(height: 16),
                 Text(
                   'Discovery Error',
-                  style: AppTypography.headingSmall.copyWith(color: AppColors.textPrimary),
+                  style: AppTypography.headingSmall
+                      .copyWith(color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   e.toString(),
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodySmall
+                      .copyWith(color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -111,15 +115,15 @@ class _NearbyFeedScreenState extends ConsumerState<NearbyFeedScreen> {
         // My Profile
         IconButton(
           tooltip: 'My Profile',
-          icon: const Icon(Icons.person_outline, size: 20,
-              color: AppColors.textSecondary),
+          icon: const Icon(Icons.person_outline,
+              size: 20, color: AppColors.textSecondary),
           onPressed: () => context.push(AppRoutes.myProfile),
         ),
         // Search
         IconButton(
           tooltip: 'Search',
-          icon: const Icon(Icons.search, size: 20,
-              color: AppColors.textSecondary),
+          icon: const Icon(Icons.search,
+              size: 20, color: AppColors.textSecondary),
           onPressed: () => context.push(AppRoutes.search),
         ),
       ],
@@ -138,10 +142,15 @@ class _NearbyFeedScreenState extends ConsumerState<NearbyFeedScreen> {
       children: [
         // Stats bar
         StatsBar(
-          total:      allPeers.length,
-          hiring:     feed.hiringCount,
+          total: allPeers.length,
+          hiring: feed.hiringCount,
           openToWork: feed.openToWorkCount,
         ),
+
+        if (feed.error != null) _DiscoveryNotice(message: feed.error!),
+
+        if (feed.transportHealth.isNotEmpty)
+          _TransportStatusRow(health: feed.transportHealth),
 
         // Filter chips
         _FilterChipsRow(
@@ -183,6 +192,82 @@ class _NearbyFeedScreenState extends ConsumerState<NearbyFeedScreen> {
   }
 }
 
+class _DiscoveryNotice extends StatelessWidget {
+  final String message;
+
+  const _DiscoveryNotice({required this.message});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.warningSurface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.warning.withAlpha(90)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded,
+                color: AppColors.warning, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style:
+                    AppTypography.bodySmall.copyWith(color: AppColors.warning),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _TransportStatusRow extends StatelessWidget {
+  final Map<String, TransportHealth> health;
+
+  const _TransportStatusRow({required this.health});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: 34,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          scrollDirection: Axis.horizontal,
+          children: health.values.map((item) {
+            final color =
+                item.available ? AppColors.success : AppColors.warning;
+            return Container(
+              margin: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withAlpha(22),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: color.withAlpha(70)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    item.available
+                        ? Icons.check_circle_outline
+                        : Icons.error_outline,
+                    size: 13,
+                    color: color,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    item.name,
+                    style: AppTypography.labelSmall.copyWith(color: color),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      );
+}
+
 // ── Filter Chips ───────────────────────────────────────────────────
 
 class _FilterChipsRow extends StatelessWidget {
@@ -199,7 +284,10 @@ class _FilterChipsRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         scrollDirection: Axis.horizontal,
         children: [
-          _Chip(label: 'All', selected: active == null, onTap: () => onChanged(null)),
+          _Chip(
+              label: 'All',
+              selected: active == null,
+              onTap: () => onChanged(null)),
           const SizedBox(width: 6),
           _Chip(
             label: '🟦 Hiring',
@@ -273,4 +361,3 @@ class _Chip extends StatelessWidget {
     );
   }
 }
-

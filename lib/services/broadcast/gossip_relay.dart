@@ -19,6 +19,7 @@ class GossipRelay {
   final SeenCache _seenCache;
 
   final _outgoingController = StreamController<BroadcastPacket>.broadcast();
+  bool _enabled = false;
 
   /// Packets that passed dedup and should appear in the feed
   Stream<BroadcastPacket> get validatedPackets => _outgoingController.stream;
@@ -35,7 +36,13 @@ class GossipRelay {
     _subscription = _transport.incomingPackets.listen(_handlePacket);
   }
 
+  void setEnabled(bool enabled) {
+    _enabled = enabled;
+  }
+
   void _handlePacket(BroadcastPacket packet) {
+    if (!_enabled) return;
+
     // Step 1: Dedup check
     if (_seenCache.isSeen(packet)) return;
 
@@ -53,6 +60,7 @@ class GossipRelay {
     await _subscription?.cancel();
     _subscription = null;
     _seenCache.clear();
+    _enabled = false;
   }
 
   Future<void> dispose() async {

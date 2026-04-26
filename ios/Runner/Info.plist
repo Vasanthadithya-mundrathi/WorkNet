@@ -47,13 +47,15 @@
 			<string>bluetooth-peripheral</string>
 		</array>
 		<!-- ── Camera (for QR scan in Phase 2) ──────────────────────── -->
-		<key>NSCameraUsageDescription</key>
-		<string>WorkNet uses the camera to scan event QR codes and join event rooms.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>WorkNet uses the camera only when you choose to take a profile photo or scan an event QR code.</string>
 		<!-- ── Location (required by iOS BLE APIs in some cases) ──────── -->
 		<!-- Note: We use neverForLocation flag on Android, but iOS BLE
        scanning may still require location permission in some SDK versions -->
-		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>WorkNet may use approximate location to improve proximity accuracy at large venues.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>WorkNet may use approximate location to improve proximity accuracy at large venues.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>WorkNet lets you choose one photo for your profile. Only the photo you select is copied into the app.</string>
 		<!-- ── UI ────────────────────────────────────────────────────── -->
 		<key>UILaunchStoryboardName</key>
 		<string>LaunchScreen</string>

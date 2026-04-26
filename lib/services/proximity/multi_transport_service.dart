@@ -25,11 +25,12 @@ class MultiTransportService implements ProximityServiceInterface {
   final ProximityServiceInterface _nearby;
 
   late final Stream<BroadcastPacket> _merged;
+  final _healthController = StreamController<TransportHealth>.broadcast();
   bool _active = false;
 
   MultiTransportService()
-      : _udp    = UdpDiscoveryService(),
-        _ble    = BleDiscoveryService(),
+      : _udp = UdpDiscoveryService(),
+        _ble = BleDiscoveryService(),
         _nearby = NearbyConnectionsService() {
     // Merge all three transport streams into one
     _merged = StreamGroup.merge([
@@ -45,6 +46,8 @@ class MultiTransportService implements ProximityServiceInterface {
   @override
   bool get isActive => _active;
 
+  Stream<TransportHealth> get healthChanges => _healthController.stream;
+
   @override
   Future<void> startEventMode(BroadcastPacket ownPacket) async {
     if (_active) return;
@@ -52,20 +55,29 @@ class MultiTransportService implements ProximityServiceInterface {
 
     // Start all transports concurrently — if one fails it won't block others
     await Future.wait([
-      _safeStart(_udp, ownPacket),
-      _safeStart(_ble, ownPacket),
-      _safeStart(_nearby, ownPacket),
+      _safeStart('UDP', _udp, ownPacket),
+      _safeStart('BLE', _ble, ownPacket),
+      _safeStart('Nearby', _nearby, ownPacket),
     ]);
   }
 
   Future<void> _safeStart(
+    String name,
     ProximityServiceInterface svc,
     BroadcastPacket packet,
   ) async {
     try {
       await svc.startEventMode(packet);
-    } catch (_) {
-      // Individual transport failure must not crash the whole system
+      _healthController.add(TransportHealth(
+        name: name,
+        available: svc.isActive,
+      ));
+    } catch (e) {
+      _healthController.add(TransportHealth(
+        name: name,
+        available: false,
+        message: e.toString(),
+      ));
     }
   }
 
@@ -111,7 +123,20 @@ class MultiTransportService implements ProximityServiceInterface {
       _ble.dispose(),
       _nearby.dispose(),
     ]);
+    await _healthController.close();
   }
+}
+
+class TransportHealth {
+  final String name;
+  final bool available;
+  final String? message;
+
+  const TransportHealth({
+    required this.name,
+    required this.available,
+    this.message,
+  });
 }
 
 // ── StreamGroup helper (no extra dependency) ───────────────────────

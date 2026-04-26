@@ -7,6 +7,7 @@ import 'package:worknet/core/theme/app_typography.dart';
 import 'package:worknet/data/models/user_profile.dart';
 import 'package:worknet/data/repositories/profile_repository.dart';
 import 'package:worknet/services/permissions/permission_service.dart';
+import 'package:worknet/services/profile/avatar_service.dart';
 
 // ════════════════════════════════════════════════════════════════════
 // PrivacySettingsScreen — granular data-sharing controls
@@ -18,7 +19,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(myProfileProvider);
-    final permStatus   = ref.watch(permissionStatusProvider);
+    final permStatus = ref.watch(permissionStatusProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -29,8 +30,8 @@ class PrivacySettingsScreen extends ConsumerWidget {
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => Center(child: Text('$e')),
-        data:    (profile) {
+        error: (e, _) => Center(child: Text('$e')),
+        data: (profile) {
           if (profile == null) return const SizedBox.shrink();
 
           return ListView(
@@ -62,6 +63,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
                   'Gender',
                   'Bio',
                   'Skills',
+                  'Profile photo thumbnail',
                 ],
                 iconColor: AppColors.textSecondary,
                 icon: Icons.tune_rounded,
@@ -78,7 +80,8 @@ class PrivacySettingsScreen extends ConsumerWidget {
                 icon: Icons.storage_outlined,
                 iconColor: AppColors.textSecondary,
                 title: 'V1 — 100% On-Device',
-                body: 'All profile data, discovered peers, and activity logs are '
+                body:
+                    'All profile data, discovered peers, and activity logs are '
                     'stored locally on this device only. No server receives '
                     'any data in this version.',
               ),
@@ -93,14 +96,41 @@ class PrivacySettingsScreen extends ConsumerWidget {
                     'uses Bluetooth and local Wi-Fi P2P only.',
               ),
 
+              const SizedBox(height: 8),
+
+              _RichInfoCard(
+                icon: profile.shareAvatar
+                    ? Icons.photo_outlined
+                    : Icons.account_circle_outlined,
+                iconColor:
+                    profile.shareAvatar ? AppColors.cyan : AppColors.textMuted,
+                title: 'Profile Photo Sharing',
+                body: profile.shareAvatar
+                    ? 'A small compressed avatar thumbnail is included in local broadcasts.'
+                    : 'Your profile photo stays on this device. Nearby people see initials.',
+                actionLabel: 'Edit Profile',
+                onAction: () => context.push(AppRoutes.profileEditor),
+              ),
+
+              const SizedBox(height: 20),
+
+              _Section(title: 'Security'),
+
+              const _RichInfoCard(
+                icon: Icons.shield_outlined,
+                iconColor: AppColors.success,
+                title: 'V1 Safety Controls',
+                body:
+                    'Incoming packets are size-checked, schema-checked, timestamp-limited, hop-limited, and malformed traffic is dropped. Nearby profiles are locally broadcast and not verified identities.',
+              ),
+
               const SizedBox(height: 20),
 
               // ── Bluetooth / Permissions ──────────────────────────────
               _Section(title: 'System Permissions'),
 
               permStatus.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (status) {
                   final isOK = status == WorkNetPermissionStatus.granted;
@@ -120,9 +150,8 @@ class PrivacySettingsScreen extends ConsumerWidget {
                     actionLabel: isOK ? null : 'Open Settings',
                     onAction: isOK
                         ? null
-                        : () => ref
-                            .read(permissionServiceProvider)
-                            .openSettings(),
+                        : () =>
+                            ref.read(permissionServiceProvider).openSettings(),
                   );
                 },
               ),
@@ -156,16 +185,15 @@ class PrivacySettingsScreen extends ConsumerWidget {
                 .copyWith(color: AppColors.textPrimary)),
         content: Text(
           'This will permanently remove your WorkNet profile from this device.',
-          style: AppTypography.bodyMedium
-              .copyWith(color: AppColors.textSecondary),
+          style:
+              AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete'),
           ),
@@ -174,11 +202,13 @@ class PrivacySettingsScreen extends ConsumerWidget {
     );
 
     if (confirm == true && context.mounted) {
-      final repo =
-          await ref.read(profileRepositoryProvider.future);
+      final repo = await ref.read(profileRepositoryProvider.future);
       final profile = await repo.getMyProfile();
       if (profile != null) {
         // Reset the profile — Isar delete
+        await ref
+            .read(avatarServiceProvider)
+            .deleteAvatarFile(profile.avatarLocalPath);
         final isar = await ref.read(isarProvider.future);
         await isar.writeTxn(
             () async => isar.collection<UserProfile>().delete(profile.id));
@@ -386,8 +416,7 @@ class _DangerCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           TextButton(
-            style: TextButton.styleFrom(
-                foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             onPressed: onTap,
             child: Text(buttonLabel),
           ),

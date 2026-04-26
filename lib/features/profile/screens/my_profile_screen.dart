@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:worknet/core/router/app_router.dart';
 import 'package:worknet/core/theme/app_colors.dart';
 import 'package:worknet/core/theme/app_typography.dart';
-import 'package:worknet/data/models/user_profile.dart';
 import 'package:worknet/data/repositories/profile_repository.dart';
-import 'package:worknet/features/profile/screens/peer_profile_view_screen.dart' show launchLinkedIn;
+import 'package:worknet/features/profile/screens/peer_profile_view_screen.dart'
+    show launchLinkedIn;
 import 'package:worknet/shared/widgets/worknet_avatar.dart';
 
 // ════════════════════════════════════════════════════════════════════
@@ -36,15 +36,16 @@ class MyProfileScreen extends ConsumerWidget {
         ],
       ),
       body: profileAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: AppColors.cyan)),
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.cyan)),
         error: (e, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+                const Icon(Icons.error_outline,
+                    color: AppColors.error, size: 48),
                 const SizedBox(height: 16),
                 Text('Error loading profile',
                     style: AppTypography.headingSmall
@@ -76,6 +77,7 @@ class MyProfileScreen extends ConsumerWidget {
                 WorkNetAvatar(
                   name: profile.name,
                   spotlightType: profile.spotlightType,
+                  imagePath: profile.avatarLocalPath,
                   size: 72,
                   ringThickness: 3,
                 ),
@@ -99,6 +101,17 @@ class MyProfileScreen extends ConsumerWidget {
                 ),
 
                 const SizedBox(height: 24),
+
+                _PrivacyHint(
+                  icon: profile.shareAvatar
+                      ? Icons.photo_outlined
+                      : Icons.account_circle_outlined,
+                  text: profile.shareAvatar
+                      ? 'Your profile photo is shared as a small local thumbnail.'
+                      : 'Nearby people see your initials unless you enable photo sharing.',
+                ),
+
+                const SizedBox(height: 12),
 
                 // Spotlight
                 Container(
@@ -145,8 +158,7 @@ class MyProfileScreen extends ConsumerWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.link,
-                            size: 16, color: AppColors.cyan),
+                        const Icon(Icons.link, size: 16, color: AppColors.cyan),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -203,8 +215,8 @@ class MyProfileScreen extends ConsumerWidget {
 
                 // Stealth toggle shortcut
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: profile.stealthMode
                         ? AppColors.error.withOpacity(0.08)
@@ -252,6 +264,35 @@ class MyProfileScreen extends ConsumerWidget {
   }
 }
 
+class _PrivacyHint extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _PrivacyHint({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: AppColors.cyan),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: AppTypography.bodySmall
+                    .copyWith(color: AppColors.textMuted),
+              ),
+            ),
+          ],
+        ),
+      );
+}
 
 class _SectionCard extends StatelessWidget {
   final String title;
